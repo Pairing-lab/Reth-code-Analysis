@@ -6,6 +6,11 @@ I hope to analyze the code of Ethereum to learn the use of blockchain technology
 
 The process, I hope to start from the low-level technical components that rely on less, and slowly go deep into the core logic.
 
+## Reference
+Thanks to [geth-code-analysis](https://github.com/agiletechvn/go-ethereum-code-analysis/tree/master)!
+***We are inspired by your work.***
+
+
 ## Table of contents
 
 1. Primitives and Core Components
