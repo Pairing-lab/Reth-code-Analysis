@@ -1,5 +1,3 @@
-네, 요청하신 대로 각 소주제 앞에 '-'를 붙이고 제목을 수정하겠습니다.
-
 # Reth-code-Analysis
 
 I hope to analyze the code of Ethereum to learn the use of blockchain technology and Rust language.
