@@ -8,14 +8,14 @@ The process, I hope to start from the low-level technical components that rely o
 
 ## Table of contents
 
-1. Primitives and Core Components
+### 1. Primitives and Core Components
    1.1. [primitives](primitives.md)
    1.2. [primitives-traits](primitives-traits.md)
    1.3. [errors](errors.md)
    1.4. [ethereum](ethereum.md)
    1.5. [ethereum-forks](ethereum-forks.md)
 
-2. Storage and Database
+### 2. Storage and Database
    2.1. [storage](storage.md)
    2.2. [trie](trie.md)
    2.3. [blockchain-tree](blockchain-tree.md)
