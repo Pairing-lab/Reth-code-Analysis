@@ -47,10 +47,8 @@ Thanks to [geth-code-analysis](https://github.com/agiletechvn/go-ethereum-code-a
    - 6.2. [chainspec](chainspec.md)
 
 7. Utilities and Helper Modules
-   - 7.1. [fs-util](fs-util.md)
    - 7.2. [metrics](metrics.md)
    - 7.3. [tracing](tracing.md)
-   - 7.4. [tokio-util](tokio-util.md)
 
 8. Testing and Development Tools
    - 8.1. [e2e-test-utils](e2e-test-utils.md)
@@ -61,11 +59,8 @@ Thanks to [geth-code-analysis](https://github.com/agiletechvn/go-ethereum-code-a
    - 9.2. [stages](stages.md)
    - 9.3. [prune](prune.md)
 
-10. CLI and User Interface
-    - 10.1. [cli](cli.md)
+10. Task Management
+    - 10.1. [tasks](tasks.md)
 
-11. Task Management
-    - 11.1. [tasks](tasks.md)
-
-12. Engine
-    - 12.1. [engine](engine.md)
+11. Engine
+    - 11.1. [engine](engine.md)
