@@ -60,7 +60,6 @@ Thanks to [geth-code-analysis](https://github.com/agiletechvn/go-ethereum-code-a
    - 9.1. [etl](etl.md)
    - 9.2. [stages](stages.md)
    - 9.3. [prune](prune.md)
-   - 9.4. [optimism](optimism.md)
 
 10. CLI and User Interface
     - 10.1. [cli](cli.md)
