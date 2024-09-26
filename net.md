@@ -132,3 +132,26 @@ where
     Ok(handle)
 }
 ```
+
+## Tasks
+
+### Network Handle and Network Inner
+
+```Rust
+pub struct NetworkHandle {
+    inner: Arc<NetworkInner>,
+}
+```
+```Rust
+struct NetworkInner {
+    num_active_peers: Arc<AtomicUsize>,
+    to_manager_tx: UnboundedSender<NetworkHandleMessage>,
+    listener_address: Arc<Mutex<SocketAddr>>,
+    local_peer_id: PeerId,
+    peers: PeersHandle,
+    network_mode: NetworkMode,
+}
+```
+`to_manager_tx` :  which is a handle that can be used to send messages in a channel to an instance of the NetworkManager struct.
+
+---
