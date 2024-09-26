@@ -239,3 +239,39 @@ impl<Pool: TransactionPool> TransactionsManager<Pool> {
     }
 }
 ```
+
+---
+### ETH Requests
+
+` // To Do : poll, get_headers_response, get_bodies_response (+ eth_wire) `
+
+
+[File: crates/net/network/src/eth_requests.rs](https://github.com/paradigmxyz/reth/blob/1563506aea09049a85e5cc72c2894f3f7a371581/crates/net/network/src/eth_requests.rs)
+
+
+---
+### Discovery
+` // To do : discovery `
+
+---
+
+## Components
+---
+
+### Fetch Client
+
+` // To Do : StateFetcher, Client(HeadersClient, BodiesClient), Downloader (Headers, Bodies), poll Action `
+
+_Using FetchClient to Get Data in the Pipeline Stages_
+
+![alt text](<스크린샷 2024-09-26 오후 4.17.12.png>)
+
+[File: crates/net/network/src/fetch/client.rs](https://github.com/paradigmxyz/reth/blob/main/docs/crates/network.md#using-fetchclient-to-get-data-in-the-pipeline-stages)
+
+```Rust
+pub struct FetchClient {
+    pub(crate) request_tx: UnboundedSender<DownloadRequest>,
+    pub(crate) peers_handle: PeersHandle,
+}
+```
+---
