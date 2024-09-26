@@ -155,3 +155,87 @@ struct NetworkInner {
 `to_manager_tx` :  which is a handle that can be used to send messages in a channel to an instance of the NetworkManager struct.
 
 ---
+### Transactions
+
+#### Transaction Handler
+① Send Commands : Send commands to the `Transaction Manager` using an `UnboundedSender`.  
+② Propagate Transactions : Sending a transaction hash to the manager to propagate the transaction.
+
+#### Transaction Manager
+① Transaction Pool  
+        - Manages the set of pending transactions  
+        - Handles their validation and import    
+② Network Handle  
+        - Interacts with the network to send & receive transactions.  
+③ Peer Management  
+④ Command Handling
+
+
+[File: crates/net/network/src/transactions.rs](https://github.com/paradigmxyz/reth/blob/1563506aea09049a85e5cc72c2894f3f7a371581/crates/net/network/src/transactions.rs)
+
+
+```Rust
+pub struct TransactionsHandle {
+    manager_tx: mpsc::UnboundedSender<TransactionsCommand>,
+}
+```
+```Rust
+impl TransactionsHandle {
+    fn send(&self, cmd: TransactionsCommand) {
+        let _ = self.manager_tx.send(cmd);
+    }
+
+    pub fn propagate(&self, hash: TxHash) {
+        self.send(TransactionsCommand::PropagateHash(hash))
+    }
+}
+```
+
+```Rust
+pub struct TransactionsManager<Pool> {
+    pool: Pool,
+    network: NetworkHandle,
+    network_events: UnboundedReceiverStream<NetworkEvent>,
+    inflight_requests: FuturesUnordered<GetPooledTxRequestFut>,
+    transactions_by_peers: HashMap<TxHash, Vec<PeerId>>,
+    pool_imports: FuturesUnordered<PoolImportFuture>,
+    peers: HashMap<PeerId, Peer>,
+    command_tx: mpsc::UnboundedSender<TransactionsCommand>,
+    command_rx: UnboundedReceiverStream<TransactionsCommand>,
+    pending_transactions: ReceiverStream<TxHash>,
+    transaction_events: UnboundedMeteredReceiver<NetworkTransactionEvent>,
+    metrics: TransactionsManagerMetrics,
+}
+```
+```Rust
+impl<Pool: TransactionPool> TransactionsManager<Pool> {
+    pub fn new(
+        network: NetworkHandle,
+        pool: Pool,
+        from_network: mpsc::UnboundedReceiver<NetworkTransactionEvent>,
+    ) -> Self {
+        let network_events = network.event_listener();
+        let (command_tx, command_rx) = mpsc::unbounded_channel();
+
+        let pending = pool.pending_transactions_listener();
+
+        Self {
+            pool,
+            network,
+            network_events,
+            inflight_requests: Default::default(),
+            transactions_by_peers: Default::default(),
+            pool_imports: Default::default(),
+            peers: Default::default(),
+            command_tx,
+            command_rx: UnboundedReceiverStream::new(command_rx),
+            pending_transactions: ReceiverStream::new(pending),
+            transaction_events: UnboundedMeteredReceiver::new(
+                from_network,
+                NETWORK_POOL_TRANSACTIONS_SCOPE,
+            ),
+            metrics: Default::default(),
+        }
+    }
+}
+```
