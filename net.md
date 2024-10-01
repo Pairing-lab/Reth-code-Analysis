@@ -134,25 +134,102 @@ where
 ```
 
 ## Tasks
+### Network Builder
+네트워크 설정을 구성하는 빌더 패턴을 구현한 것입니다. 주요 구성 요소는 `NetworkBuilder` 구조체와 그 구현입니다. 이 코드는 네트워크 매니저, 트랜잭션 매니저, 그리고 요청 핸들러를 설정하고 관리하는 기능을 제공합니다.  
 
-### Network Handle and Network Inner
+[File: crates/net/network/src/builder.rs](https://github.com/paradigmxyz/reth/blob/main/crates/net/network/src/builder.rs)
+
+#### 1. 상수 정의
+```Rust
+pub(crate) const ETH_REQUEST_CHANNEL_CAPACITY: usize = 256;
+```
+- `ETH_REQUEST_CHANNEL_CAPACITY`는 `EthRequestHandler`의 최대 채널 용량을 256으로 설정합니다. 이는 악의적인 10MB 크기의 요청이 256개일 경우 2.6GB의 메모리를 차지할 수 있음을 의미합니다.
+
+#### 2. `NetworkBuilder` 구조체 
 
 ```Rust
-pub struct NetworkHandle {
-    inner: Arc<NetworkInner>,
+pub struct NetworkBuilder<Tx, Eth> {
+    pub(crate) network: NetworkManager,
+    pub(crate) transactions: Tx,
+    pub(crate) request_handler: Eth,
 }
 ```
+- `NetworkBuilder`는 네트워크 매니저, 트랜잭션 매니저, 요청 핸들러를 포함하는 구조체입니다. 제네릭 타입 Tx와 Eth를 사용하여 다양한 트랜잭션 매니저와 요청 핸들러를 지원합니다.
+
+#### 3.  `NetworkBuilder` 구현
 ```Rust
-struct NetworkInner {
-    num_active_peers: Arc<AtomicUsize>,
-    to_manager_tx: UnboundedSender<NetworkHandleMessage>,
-    listener_address: Arc<Mutex<SocketAddr>>,
-    local_peer_id: PeerId,
-    peers: PeersHandle,
-    network_mode: NetworkMode,
+impl<Tx, Eth> NetworkBuilder<Tx, Eth> {
+    // 여러 메서드들...
 }
 ```
-`to_manager_tx` :  which is a handle that can be used to send messages in a channel to an instance of the NetworkManager struct.
+
+- **split**: 구조체를 분해하여 개별 필드를 반환합니다.
+- **network**: 네트워크 매니저에 대한 참조를 반환합니다.
+- **network_mut**: 네트워크 매니저에 대한 가변 참조를 반환합니다.
+- handle: 네트워크 핸들을 반환합니다.
+- **split_with_handle**: 구조체를 분해하여 네트워크 핸들과 개별 필드를 반환합니다.
+- **transactions**: 새로운 - TransactionsManager를 생성하고 네트워크에 연결합니다.
+- **equest_handler**: 새로운 EthRequestHandler를 생성하고 네트워크에 연결합니다.
+
+#### 사용 예제 
+```Rust
+let network_manager = NetworkManager::new();
+let builder = NetworkBuilder {
+    network: network_manager,
+    transactions: (),
+    request_handler: (),
+};
+
+// 트랜잭션 매니저 설정
+let pool = MyTransactionPool::new();
+let transactions_manager_config = TransactionsManagerConfig::default();
+let builder = builder.transactions(pool, transactions_manager_config);
+
+// 요청 핸들러 설정
+let client = MyClient::new();
+let builder = builder.request_handler(client);
+
+// 네트워크 매니저와 핸들 얻기
+let (network_handle, network_manager, transactions, request_handler) = builder.split_with_handle();
+```
+
+### Network Config
+네트워크 초기화 설정 지원 모듈  
+[File: crates/net/network/src/config.rs](https://github.com/paradigmxyz/reth/blob/main/crates/net/network/src/config.rs)
+
+#### 1. `NetworkConfig` 구조체
+- 네트워크 초기화에 필요한 모든 설정
+- **client** : 체인과 상호작용하는 client
+- **secret_key** : 노드의 비밀 키
+- **boot_nodes**: 부트 노드의 집합; 네트워크 탐색 시 사용할 기본 노드들.
+- **discovery_v4_config, dns_discovery_config**: 네트워크 디스커버리 설정.
+- **peers_config, sessions_config**: 피어 및 세션 관리 설정
+- **chain_spec**: 네트워크가 사용할 체인 스펙.
+- **fork_filter**: 세션 인증에 사용할 포크 필터.
+- **block_import**: 블록 가져오기를 처리하는 객체.
+- **network_mode**: 네트워크가 사용 중인 모드(POS 또는 POW).
+- **executor**: 네트워크 작업을 비동기로 처리할 실행기(executor).
+
+#### 2. `NetworkConfigBuilder` 구조체
+- `NetworkConfig` 빌드 위한 빌더 패턴 구현
+- 단계별 설정 메서드 제공
+- 기본값 설정 통한 초기화 편의 메서드 포함  
+---  
+
+**주요 메서드**  
+- **new(secret_key)**: 새로운 빌더 인스턴스 생성 / 기본값 설정  
+- **chain_spec, network_mode, set_head, hello_message** : 체인 스펙, 네트워크 모드, 헤드 정보, HelloMessage 설정  
+- **set_addrs, listener_addr, discovery_addr** : 네트워크 리스너 및 디스커버리 주소 설정  
+- **build(client)**: 설정을 기반으로 `NetworkConfig` 객체 생성.
+
+#### 3. `NetworkMode` 열거형
+- 네트워크 모드 정의   
+: `Work` /  `Stake`
+- `is_stake` 메서드로 모드 확인 가능
+
+#### 4. 테스트 모듈 
+- `NetworkConfig`와 `NetworkConfigBuilder` 기능 테스트
+- `test_network_dns_defaults`, `test_network_fork_filter_default`
 
 ---
 ### Transactions
