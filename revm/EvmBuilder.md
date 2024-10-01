@@ -1,9 +1,9 @@
 `EvmBuilder`는 evm을 만들거나 수정할 수 있도록 해준다.
 -> External Context 혹은 Custom Handler를 설정할 수 있도록 해준다. 
 
-[[Context]]
+[Context](./Context.md)
 
-[[Handler]]
+[Handler](./Handler.md)
 
 `Builder` 는 generic한 `Database`, `External Context`  와 `Spec` 의 의존성을 묶어준다 
 
