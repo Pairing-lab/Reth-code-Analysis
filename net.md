@@ -232,90 +232,393 @@ let (network_handle, network_manager, transactions, request_handler) = builder.s
 - `test_network_dns_defaults`, `test_network_fork_filter_default`
 
 ---
-### Transactions
+## Transactions
 
-#### Transaction Handler
-① Send Commands : Send commands to the `Transaction Manager` using an `UnboundedSender`.  
-② Propagate Transactions : Sending a transaction hash to the manager to propagate the transaction.
+## config.rs
+### 트랜잭션 처리 시스템 설정값 정의 
+: `TransactionsManagerConfig` , `TransactionsFetcherConfig`
 
-#### Transaction Manager
-① Transaction Pool  
-        - Manages the set of pending transactions  
-        - Handles their validation and import    
-② Network Handle  
-        - Interacts with the network to send & receive transactions.  
-③ Peer Management  
-④ Command Handling
+[File : crates/net/network/src/transactions/config.rs](https://github.com/paradigmxyz/reth/blob/main/crates/net/network/src/transactions/config.rs)
+
+#### 1. `TransactionsManagerConfig` 구조체 및 구현
+: transaction 관리하는 최상위 설정
+```Rust
+pub struct TransactionsManagerConfig {
+    pub transaction_fetcher_config: TransactionFetcherConfig,
+    pub max_transactions_seen_by_peer_history: u32,
+}
+
+impl Default for TransactionsManagerConfig {
+    fn default() -> Self {
+        Self {
+            transaction_fetcher_config: TransactionFetcherConfig::default(),
+            max_transactions_seen_by_peer_history: DEFAULT_MAX_COUNT_TRANSACTIONS_SEEN_BY_PEER,
+        }
+    }
+}
+```
+- `transaction_fetcher_config` : `TransactionFetcherConfig`에 위임 ... 트랜잭션 가지고 오는 방식 정의 
+- `max_transactions_seen_by_peer_history` : peer가 본 transaction의 개수 저장 
+
+### 2. `TransactionsFetcherConfig` 구조체 및 구현
+: Transaction을 가져오는 방식에 대한 세부사항을 정의 
+```Rust
+pub struct TransactionFetcherConfig {
+    // 한번에 처리할 수 있는 트랜잭션 요청의 최대 개수 정의 
+    pub max_inflight_requests: u32,
+    // 각 피어가 동시에 진행할 수 있는 트랜잭션 요청의 최대 개수 
+    pub max_inflight_requests_per_peer: u8,
+    // 트랜잭션 응답 크기 제한 
+    pub soft_limit_byte_size_pooled_transactions_response: usize,
+    // 요청 시 트랜잭션 응답의 크기 제한
+    pub soft_limit_byte_size_pooled_transactions_response_on_pack_request: usize,
+    // 완료되지 않은 트랜잭션의 해시의 크기 정의 
+    pub max_capacity_cache_txns_pending_fetch: u32,
+}
 
 
-[File: crates/net/network/src/transactions.rs](https://github.com/paradigmxyz/reth/blob/1563506aea09049a85e5cc72c2894f3f7a371581/crates/net/network/src/transactions.rs)
+impl Default for TransactionFetcherConfig {
+    fn default() -> Self {
+        Self {
+            max_inflight_requests: DEFAULT_MAX_COUNT_CONCURRENT_REQUESTS,
+            max_inflight_requests_per_peer: DEFAULT_MAX_COUNT_CONCURRENT_REQUESTS_PER_PEER,
+            soft_limit_byte_size_pooled_transactions_response:
+                SOFT_LIMIT_BYTE_SIZE_POOLED_TRANSACTIONS_RESPONSE,
+            soft_limit_byte_size_pooled_transactions_response_on_pack_request:
+                DEFAULT_SOFT_LIMIT_BYTE_SIZE_POOLED_TRANSACTIONS_RESP_ON_PACK_GET_POOLED_TRANSACTIONS_REQ,
+            max_capacity_cache_txns_pending_fetch: DEFAULT_MAX_CAPACITY_CACHE_PENDING_FETCH,
+        }
+    }
+}
+```
+---
+## constants.rs
+#### 트랜잭션과 관련된 상수값들을 미리 정의
+[File : crates/net/network/src/transactions/constants.rs](https://github.com/paradigmxyz/reth/blob/main/crates/net/network/src/transactions/constants.rs)
 
+- 브로드캐스트 관련 
+- 요청 - 응답 관련
+- `TransactionsManager` 관련
+- `TransactionsFetcher` 관련 
+---
+## mod.rs
+
+### 1. `TransactionsHandle` 구조체 및 구현 
+- `TransactionsHandle` =  트랜잭션 관련 명령을  `TransactionsManager`에게 전달하는 **인터페이스** 역할 
 
 ```Rust
 pub struct TransactionsHandle {
     manager_tx: mpsc::UnboundedSender<TransactionsCommand>,
 }
 ```
+- `manager_tx`: TransactionsCommand 보내는 채널 
+- 이 채널을 통해 `TransactionsManager`로 보낼 수 있는 것
+
+### ① TransactionsCommand Sending Methods
 ```Rust
 impl TransactionsHandle {
     fn send(&self, cmd: TransactionsCommand) {
         let _ = self.manager_tx.send(cmd);
     }
+}
+```
+- `send` : `TransactionsCommand`를 `manager_tx` 통해 비동기적 전송
 
+```Rust
+impl TransactionsHandle {
     pub fn propagate(&self, hash: TxHash) {
         self.send(TransactionsCommand::PropagateHash(hash))
     }
 }
 ```
-
+- `propagate` : 특정 트랜잭션 해시 → 다른 peer들에게 전파
 ```Rust
-pub struct TransactionsManager<Pool> {
-    pool: Pool,
-    network: NetworkHandle,
-    network_events: UnboundedReceiverStream<NetworkEvent>,
-    inflight_requests: FuturesUnordered<GetPooledTxRequestFut>,
-    transactions_by_peers: HashMap<TxHash, Vec<PeerId>>,
-    pool_imports: FuturesUnordered<PoolImportFuture>,
-    peers: HashMap<PeerId, Peer>,
-    command_tx: mpsc::UnboundedSender<TransactionsCommand>,
-    command_rx: UnboundedReceiverStream<TransactionsCommand>,
-    pending_transactions: ReceiverStream<TxHash>,
-    transaction_events: UnboundedMeteredReceiver<NetworkTransactionEvent>,
-    metrics: TransactionsManagerMetrics,
+impl TransactionsHandle {
+    pub fn propagate_hash_to(&self, hash: TxHash, peer: PeerId) {
+        self.propagate_hashes_to(Some(hash), peer)
+    }
 }
 ```
+- `propagate_hash_to` : 트랜잭션 해시 → 특정 peer에게 전파 (transactionPool에 해당 해시가 있을 경우에만)
+```Rust
+impl TransactionsHandle {
+    pub fn propagate_hashes_to(&self, hash: impl IntoIterator<Item = TxHash>, peer: PeerId) {
+        self.send(TransactionsCommand::PropagateHashesTo(hash.into_iter().collect(), peer))
+    }
+}
+```
+- `propagate_hashes_to` : 여러 트랜잭션 해시들 → 특정 peer에게 전파
+```Rust
+impl TransactionsHandle {
+    pub fn propagate_transactions_to(&self, transactions: Vec<TxHash>, peer: PeerId) {
+        self.send(TransactionsCommand::PropagateTransactionsTo(transactions, peer))
+    }
+}
+```
+- `propagate_transactions_to` : 전체 트랜잭션 → 특정 peer에게 전파
+
+### ② Peer Handling Methods
+```Rust
+impl TransactionsHandle {
+    async fn peer_handle(&self, peer_id: PeerId) -> Result<Option<PeerRequestSender>, RecvError> {
+        let (tx, rx) = oneshot::channel();
+        self.send(TransactionsCommand::GetPeerSender { peer_id, peer_request_sender: tx });
+        rx.await
+    }
+}
+```
+- `peer_handle` 
+    - 특정 peer의 `PeerRequestSender`를 가지고 온다.
+    - `TransactionsCommand::GetPeerSender` 명령을 전송하면 해당 피어의 `PeerRequestSender`를 응답으로 받을 수 있다.
+```Rust
+impl TransactionsHandle {
+    pub async fn get_pooled_transactions_from(
+        &self,
+        peer_id: PeerId,
+        hashes: Vec<B256>,
+    ) -> Result<Option<Vec<PooledTransactionsElement>>, RequestError> {
+        let Some(peer) = self.peer_handle(peer_id).await? else { return Ok(None) };
+
+        let (tx, rx) = oneshot::channel();
+        let request = PeerRequest::GetPooledTransactions { request: hashes.into(), response: tx };
+        peer.try_send(request).ok();
+
+        rx.await?.map(|res| Some(res.0))
+    }
+}
+```
+- `get_pooled_transactions_from` : 특정 peer에 transaction 직접 요청
+
+### ③ Peer and Transaction Information Requests
+
+```Rust 
+impl TransactionsHandle {
+    pub async fn get_active_peers(&self) -> Result<HashSet<PeerId>, RecvError> {
+        let (tx, rx) = oneshot::channel();
+        self.send(TransactionsCommand::GetActivePeers(tx));
+        rx.await
+    }
+}
+```
+- `get_active_peers` : 활성화된 peer ID 요청
+```Rust
+impl TransactionsHandle {
+    pub async fn get_transaction_hashes(
+        &self,
+        peers: Vec<PeerId>,
+    ) -> Result<HashMap<PeerId, HashSet<TxHash>>, RecvError> {
+        let (tx, rx) = oneshot::channel();
+        self.send(TransactionsCommand::GetTransactionHashes { peers, tx });
+        rx.await
+    }
+}
+```
+- `get_transaction_hashes` : 특정 peer들에게 알고 있는 transaction 해시 목록 요청
+```Rust
+impl TransactionsHandle {
+    pub async fn get_peer_transaction_hashes(
+        &self,
+        peer: PeerId,
+    ) -> Result<HashSet<TxHash>, RecvError> {
+        let res = self.get_transaction_hashes(vec![peer]).await?;
+        Ok(res.into_values().next().unwrap_or_default())
+    }
+}
+```
+- `get_peer_transaction_hashes` : 특정 peer에게 알고 있는 transaction 해시 목록 요청
+
+### 2. `TransactionsManager` 구조체 및 구현 
+
 ```Rust
 impl<Pool: TransactionPool> TransactionsManager<Pool> {
     pub fn new(
+        // 외부 네트워크와의 상호작용 , peer와 통신 기능 제공
         network: NetworkHandle,
+        // transaction 유효성 검사, 새로운 transaction 추가
         pool: Pool,
         from_network: mpsc::UnboundedReceiver<NetworkTransactionEvent>,
+        transactions_manager_config: TransactionsManagerConfig,
     ) -> Self {
-        let network_events = network.event_listener();
         let (command_tx, command_rx) = mpsc::unbounded_channel();
-
+        // transaction 가지고 오는 요청, 누락된 트랜잭션 처리 
+        let transaction_fetcher = TransactionFetcher::with_transaction_fetcher_config(
+            &transactions_manager_config.transaction_fetcher_config,
+        );
         let pending = pool.pending_transactions_listener();
-
+        
         Self {
             pool,
             network,
-            network_events,
-            inflight_requests: Default::default(),
-            transactions_by_peers: Default::default(),
-            pool_imports: Default::default(),
-            peers: Default::default(),
+            network_events: network.event_listener(),
+            transaction_fetcher,
             command_tx,
             command_rx: UnboundedReceiverStream::new(command_rx),
+            //대기 transaction stream : 네트워크에 전파할 수 있는 상태
             pending_transactions: ReceiverStream::new(pending),
             transaction_events: UnboundedMeteredReceiver::new(
                 from_network,
                 NETWORK_POOL_TRANSACTIONS_SCOPE,
             ),
-            metrics: Default::default(),
+            metrics: TransactionsManagerMetrics::default(),
+            // 나머지 초기화 생략
         }
     }
 }
+
 ```
+## Methods
+### ① 기본 구성 
+----
+
+### new
+- #### 네트워크 핸들링 
+    ```Rust
+    let network_events = network.event_listener();
+    ```
+    - 네트워크 이벤트 리스너 설정 
+    - 트랜잭션 관련 네트워크 이벤트 수신
+
+- #### command 채널 설정
+    ```Rust
+    let (command_tx, command_rx) = mpsc::unbounded_channel();
+    ```
+    - `command_tx` (송신자) / `command_rx`(수신자) 채널 생성
+    - 외부에서 `TransactionsManager`에게 명령을 보낼 수 있고, `TransactionsManager`도 이를 처리할 준비가 됨
+
+- #### transaction_fetch 설정
+    ```Rust
+    let transaction_fetcher = TransactionFetcher::with_transaction_fetcher_config(
+    &transactions_manager_config.transaction_fetcher_config,
+    );
+    ``` 
+- #### pending_transactions 처리
+    ```Rust
+    let pending = pool.pending_transactions_listener();
+    ```
+    - transactionPool 이 pending_transaction을 추가할 때 listener 설정
+
+- #### metrics 설정
+    ```Rust
+    let pending_pool_imports_info = PendingPoolImportsInfo::default();
+    let metrics = TransactionsManagerMetrics::default();
+    metrics.capacity_pending_pool_imports.increment(pending_pool_imports_info.max_pending_pool_imports as u64);
+    ```
+    -`TransactionsManagerMetrics` : `TransactionsManager` 발생 이벤트 추적
+    - `pending_pool_imports_info` : pending_transactioins 가져오기 설정하고 metrics로 추적
+
+###  handle
+```Rust
+ pub fn handle(&self) -> TransactionsHandle {
+        TransactionsHandle { manager_tx: self.command_tx.clone() }
+    }
+```
+- `TransactionsHandle` 생성
+---
+
+### ② Transactions 전파 및 관리
+---
+
+### on_new_pending_transactions
+```Rust
+fn on_new_pending_transactions(&mut self, hashes: Vec<TxHash>) {
+        if self.network.is_initially_syncing() || self.network.tx_gossip_disabled() {
+            return;
+        }
+        let propagated = self.propagate_transactions(
+            self.pool.get_all(hashes).into_iter().map(PropagateTransaction::new).collect(),
+        );
+        self.pool.on_propagated(propagated);
+    }
+```
+- `on_new_pending_transactions` 
+    - 새로 대기 중인 트랜잭션을 처리
+    - 네트워크 전파 준비
+
+### propagate_transactions
+-  `propagate_transactions` : transaction을 peer에게 전파
+```Rust
+fn propagate_transactions(
+    // 초기화 
+        &mut self,
+        to_propagate: Vec<PropagateTransaction>,
+    ) -> PropagatedTransactions {
+        let mut propagated = PropagatedTransactions::default();
+        if self.network.tx_gossip_disabled() {
+            return propagated;
+        }
+        // peer 수 계산
+        let max_num_full = (self.peers.len() as f64).sqrt().round() as usize;
+        // peer 순회 및 transactions 전파 준비
+        for (peer_idx, (peer_id, peer)) in self.peers.iter_mut().enumerate() {
+            let mut builder = if peer_idx > max_num_full {
+                PropagateTransactionsBuilder::pooled(peer.version)
+            } else {
+                PropagateTransactionsBuilder::full(peer.version)
+            };
+            // transactions 확인 및 추가
+            for tx in &to_propagate {
+                if !peer.seen_transactions.contains(&tx.hash()) {
+                    builder.push(tx);
+                }
+            }
+            // 전파할 transaction build 및 전송 
+            let PropagateTransactions { pooled, full } = builder.build();
+            if let Some(new_pooled_hashes) = pooled {
+                new_pooled_hashes
+                    .truncate(SOFT_LIMIT_COUNT_HASHES_IN_NEW_POOLED_TRANSACTIONS_BROADCAST_MESSAGE);
+                self.network.send_transactions_hashes(*peer_id, new_pooled_hashes);
+            }
+            if let Some(new_full_transactions) = full {
+                self.network.send_transactions(*peer_id, new_full_transactions);
+            }
+        }
+        propagated
+    }
+```
+---
+### ③ Transactions 가져오기
+---
+### on_get_pooled_transactions
+- peer로부터 받은 transactions 요청을 가져와 반환 
+```Rust
+fn on_get_pooled_transactions(
+        &mut self,
+        peer_id: PeerId,
+        request: GetPooledTransactions,
+        response: oneshot::Sender<RequestResult<PooledTransactions>>,
+    ) {
+        // peer 존재 확인
+        if let Some(peer) = self.peers.get_mut(&peer_id) {
+            // 네트워크 상태 확인
+            if self.network.tx_gossip_disabled() {
+                let _ = response.send(Ok(PooledTransactions::default()));
+                return;
+            }
+            // transactions 검색
+            let transactions = self.pool.get_pooled_transaction_elements(
+                request.0,
+                GetPooledTransactionLimit::ResponseSizeSoftLimit(
+                    self.transaction_fetcher.info.soft_limit_byte_size_pooled_transactions_response,
+                ),
+            );
+            // 해당 peer가 transactions를 봤다고 기록
+            peer.seen_transactions.extend(transactions.iter().map(|tx| *tx.hash()));
+            // peer에게 전송 
+            let resp = PooledTransactions(transactions);
+            let _ = response.send(Ok(resp));
+        }
+    }
+```
+---
+### ④ Metrics 업데이트
+```Rust 
+fn update_poll_metrics(&self, start: Instant, poll_durations: TxManagerPollDurations){
+    ...
+}
+```
+ - 메트릭 업데이트를 통해 `TransactionsManager` 동작 모니터링 
+
+// to do : fetcher.rs, validation.rs
 
 ---
 ## ETH Requests
