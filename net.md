@@ -31,7 +31,7 @@ Analysis of the networking components involved in Ethereum's peer-to-peer (P2P) 
    ---
 ## Overview
 
-![alt text](<스크린샷 2024-09-26 오전 10.31.18.png>)
+<img width="739" alt="overview" src="https://github.com/user-attachments/assets/c9be73b4-553f-49dc-b9b9-e4b466ed2ede">
 
 Reth's P2P networking consists primarily of 4 ongoing tasks
 :  `Discovery` , `Transactions` , `ETH Requests`, `Network Handle` .
@@ -264,7 +264,8 @@ impl<Pool: TransactionPool> TransactionsManager<Pool> {
 
 _Using FetchClient to Get Data in the Pipeline Stages_
 
-![alt text](<스크린샷 2024-09-26 오후 4.17.12.png>)
+<img width="608" alt="fetch client" src="https://github.com/user-attachments/assets/570099cd-7f6a-4d23-864d-d3d19d15653c">
+
 
 [File: crates/net/network/src/fetch/client.rs](https://github.com/paradigmxyz/reth/blob/main/docs/crates/network.md#using-fetchclient-to-get-data-in-the-pipeline-stages)
 
