@@ -1,4 +1,4 @@
-#### **[Network State]**
+# Network State 
 - 네트워크에서 peer 상태 추적, peer 연결 관리, block 전파  피어와의 연결을 관리하며, 블록을 전파
 
 [File : crates/net/network/src/state.rs](https://github.com/paradigmxyz/reth/blob/main/crates/net/network/src/state.rs#L72)
@@ -48,10 +48,9 @@ pub struct NetworkState {
     state_fetcher: StateFetcher,
 }
 ```
-#### ①
+#### ① new
 ```Rust
 impl NetworkState {
-    /// Create a new state instance with the given params
     pub(crate) fn new(
         client: BlockNumReader,
         discovery: Discovery,
@@ -130,7 +129,7 @@ impl NetworkState {
     - 위에서 정의한 `BlockNumReader`를 통해  peer가 가진 블록 번호 확인 후 `active_peers`에 추가
     - `StateFetcher`에게 peer 활성화 알리고, peer가 새로운 블록 추적 설정
 
-#### ④새로운 블록 전파
+#### ④ 새로운 블록 전파
 ```Rust
 impl NetworkState{
     pub(crate) fn announce_new_block(&mut self, msg: NewBlockMessage) {
