@@ -1,0 +1,1 @@
+ # A Consensus implementation for local testing purposes that automatically seals blocks.
