@@ -1,6 +1,7 @@
 # listener
-- `TcpListener`를 사용하여 `ConnectionListener` 구현  
-- `ConnectionListener`는 TCP 연결을 비동기적으로 수신하고 처리   
+> - `TcpListener`를 사용하여 `ConnectionListener` 구현  
+> - `ConnectionListener`는 TCP 연결을 비동기적으로 수신하고 처리   
+
 [File : crates/net/network/src/listener.rs](https://github.com/paradigmxyz/reth/blob/main/crates/net/network/src/listener.rs)
 
 ### 1. `ConnectionListener` 구조체 및 구현
@@ -14,7 +15,7 @@ pub struct ConnectionListener {
 - `local_address` : 현재 `listener`가 수신하고 있는 주소.  `TcpListener`가 binding된 주소, 즉, TcpListener가 연결을 수신하고 있는 위치 (IP, 포트번호)라고 할 수 있다. 
 - `incoming` : 들어오는 TCP 연결을 비동기 처리 
 
-### bind
+#### ① bind
 ```Rust
 impl ConnectionListener {
     pub async fn bind(addr: SocketAddr) -> io::Result<Self> {
@@ -29,7 +30,7 @@ impl ConnectionListener {
     - `local_addr`로 바인딩된 주소 확인
     - 성공적 바인딩 후 `ConnectionListener`를 반환
 
-### new
+#### ② new
 ```Rust
 impl ConnectionListener {
    pub(crate) const fn new(listener: TcpListener, local_address: SocketAddr) -> Self
@@ -37,7 +38,7 @@ impl ConnectionListener {
 ```
 - `new` : `TcpListener`와 `local_address`를 받아 새로운 ConnectionListener를 생성
 
-### poll
+#### ③ poll
 ```Rust
 impl ConnectionListener {
    pub fn poll(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<ListenerEvent> {
@@ -63,7 +64,7 @@ impl ConnectionListener {
 ```
 - `poll` : `ConnectionListener`가 비동기적으로 진행되도록 함
 
-### local_address
+#### ④ local_address
 ```Rust
 impl ConnectionListener {
    pub const fn local_address(&self) -> SocketAddr

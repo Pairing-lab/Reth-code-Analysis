@@ -9,7 +9,7 @@
 
 ## mod.rs  
 - `StateFetcher` : 네트워크에서 **블록 헤드** 와 **블록 바디** 가져옴
-- peer 연결 상태 관리, 다운로드 요청 큐에 저장, peer로부터 데이터 요청 후 응답 처리
+- peer 연결 상태 관리, 다운로드 요청 큐에 저장, peer로부터 데이터 요청 후 응답 처리  
 [File: crates/net/network/src/fetch/mod.rs](https://github.com/paradigmxyz/reth/blob/main/crates/net/network/src/fetch/mod.rs)
 
 ### 1. `StateFetcher` 구조체 
@@ -160,7 +160,9 @@ pub(crate) fn on_block_headers_response(
 ## client.rs
 - `FetchClient` : 네트워크에서 데이터를 다운로드하기 위한 클라이언트 구현체
 - `블록 헤더`와 `블록 바디`를 peer로부터 요청
-- 네트워크와 상호 작용 , peer 평판 관리, 세션 수 관리 
+- 네트워크와 상호 작용 , peer 평판 관리, 세션 수 관리  
+
+[File: crates/net/network/src/fetch/client.rs](https://github.com/paradigmxyz/reth/blob/main/crates/net/network/src/fetch/client.rs)
 
 ### 1. `FetchClient` 구조체
 ```Rust

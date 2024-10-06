@@ -1,5 +1,5 @@
 # Network State 
-- 네트워크에서 peer 상태 추적, peer 연결 관리, block 전파  피어와의 연결을 관리하며, 블록을 전파
+> 네트워크에서 peer 상태 추적, peer 연결 관리, block 전파  피어와의 연결을 관리하며, 블록을 전파
 
 [File : crates/net/network/src/state.rs](https://github.com/paradigmxyz/reth/blob/main/crates/net/network/src/state.rs#L72)
 

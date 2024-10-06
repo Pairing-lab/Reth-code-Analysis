@@ -1,6 +1,7 @@
 # Network
-- `NetworkHandle` : 네트워크와 상호작용하는 인터페이스
-- P2P 네트워크의 피어 관리, 트랜잭션 처리, 네트워크 이벤트 처리
+> - `NetworkHandle` : 네트워크와 상호작용하는 인터페이스
+> - P2P 네트워크의 피어 관리, 트랜잭션 처리, 네트워크 이벤트 처리  
+
 [File : crates/net/network/src/network.rs](https://github.com/paradigmxyz/reth/blob/main/crates/net/network/src/network.rs)  
 
 ### 1. `NetworkHandle` 구조체

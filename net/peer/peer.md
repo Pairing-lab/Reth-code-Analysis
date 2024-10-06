@@ -5,10 +5,10 @@
     - [node_record.rs](#node_recordrs)
     - [trusted_peer.rs](#trusted_peerrs)
 ## peer.rs  
-- **네트워크**에서 peer 관리 : 
-    - peer와의 연결 및 해제
-    - peer의 상태 변화
-    - 평판 시스템 
+> - **네트워크**에서 peer 관리 : 
+>    - peer와의 연결 및 해제
+>    - peer의 상태 변화
+>    - 평판 시스템 
 
 [File : crates/net/network/src/peer.rs](https://github.com/paradigmxyz/reth/blob/main/crates/net/network/src/peers.rs)  
 ### 1. `PeersManager` 구조체 및 구현 

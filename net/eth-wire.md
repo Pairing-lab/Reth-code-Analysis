@@ -12,8 +12,8 @@
     - [disconnect.rs](#disconnectrs)
 ## protocol.rs
 [File : crates/net/network/src/protocol.rs](https://github.com/paradigmxyz/reth/blob/main/crates/net/network/src/protocol.rs) 
-- `RLPx` 기반의 프로토콜을 처리하는 기능 정의
--  이더리움의 peer 간 연결을 확장해 프로토콜을 처리할 수 있도록 함
+> - `RLPx` 기반의 프로토콜을 처리하는 기능 정의
+> -  이더리움의 peer 간 연결을 확장해 프로토콜을 처리할 수 있도록 함
 
 ### 1. `ProtocolHandler` 관련
 - `RLPx 프로토콜 핸들링`을 위한 메서드들
