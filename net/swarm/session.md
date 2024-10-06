@@ -1,4 +1,4 @@
-#### **[Session Manager]**
+# Session 
 - [mod.rs](#modrs)
 - [active.rs](#activers)
 - [conn.rs](#connrs)
