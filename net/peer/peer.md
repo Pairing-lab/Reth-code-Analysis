@@ -1,9 +1,9 @@
-# peer 
-- [peer.rs](#peer.rs)
-- [peer](#peer)
-    - [lib.rs](#lib.rs)
-    - [node_record.rs](#node_record.rs)
-    - [trusted_peer.rs](#trusted_peer.rs)
+# Peer 
+- [peer.rs](#peerrs)
+- [peer](#peer-1)
+    - [lib.rs](#librs)
+    - [node_record.rs](#node_recordrs)
+    - [trusted_peer.rs](#trusted_peerrs)
 ## peer.rs  
 - **네트워크**에서 peer 관리 : 
     - peer와의 연결 및 해제
